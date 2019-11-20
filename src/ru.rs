@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use surf;
-use select::{document::Document, predicate::{Predicate, Attr, Class, Name}};
+use select::{document::Document, predicate::{Predicate, Text, Element, Attr, Class, Name}};
 // use reqwest;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -26,7 +26,27 @@ pub struct Food {
 }
 
 impl Food {
+    pub const fn new() -> Self {
+        Self {
+            main_course: String::new(),
+            veggie: String::new(),
+            extra: String::new(),
+            salads: String::new(),
+            dessert: String::new(),
+            today: false,
+        }
+    }
 
+    pub const fn create_today() -> Self {
+        Self {
+            main_course: String::new(),
+            veggie: String::new(),
+            extra: String::new(),
+            salads: String::new(),
+            dessert: String::new(),
+            today: true,
+        }
+    }
 }
 
 pub async fn get_table() -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
@@ -43,6 +63,7 @@ pub async fn get_table() -> Result<String, Box<dyn std::error::Error + Send + Sy
     let html = Document::from(doc.as_str());
     let card_semanal = html.find(Class("cardapio-semanal")).nth(0).unwrap();
     let html_table = card_semanal.find(Name("table")).nth(0).unwrap();
+    // dbg!(&html_table);
 
     let mut table: HashMap<Days, HashMap<&str, Food>> = HashMap::new();
     for tr in html_table.find(Name("tr")) {
@@ -50,16 +71,19 @@ pub async fn get_table() -> Result<String, Box<dyn std::error::Error + Send + Sy
             Some("cardapio-hoje") => {
                 let day_str = tr.find(Name("td")).nth(0).unwrap().text();
                 let day = match day_str {
-                    s if day_str.contains("Seg") => Seg,
-                    s if day_str.contains("Ter") => Ter,
-                    s if day_str.contains("Qua") => Qua,
-                    s if day_str.contains("Qui") => Qui,
-                    s if day_str.contains("Sex") => Sex,
-                    s if day_str.contains("Sab") => Sab,
+                    _s if day_str.contains("Seg") => Seg,
+                    _s if day_str.contains("Ter") => Ter,
+                    _s if day_str.contains("Qua") => Qua,
+                    _s if day_str.contains("Qui") => Qui,
+                    _s if day_str.contains("Sex") => Sex,
+                    _s if day_str.contains("Sab") => Sab,
                     _ => Dom,
                 };
 
-                dbg!(tr.prev(), tr.next());
+                let mut food = Food::create_today();
+
+                let almoco_node = tr.find(Element).nth(2).unwrap();
+                dbg!(almoco_node);
 
                 // table.insert(day, v: V);
             },
