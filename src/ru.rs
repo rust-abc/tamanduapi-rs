@@ -1,7 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
+use select::{
+    document::Document,
+    predicate::{Attr, Class, Element, Name, Predicate, Text},
+};
 use surf;
-use select::{document::Document, predicate::{Predicate, Text, Element, Attr, Class, Name}};
 // use reqwest;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -15,37 +18,28 @@ pub enum Days {
     Dom,
 }
 
-#[derive(Debug, Default, PartialEq, PartialOrd, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Category {
+    Lunch(Food),
+    Dinner(Food),
+    Salad(String),
+    Dessert(String),
+}
+
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Food {
     main_course: String,
-    veggie: String,
-    extra: String,
-    salads: String,
-    dessert: String,
-    today: bool,
+    veggie:      String,
+    extra:       String,
 }
 
 impl Food {
     pub const fn new() -> Self {
-        Self {
-            main_course: String::new(),
-            veggie: String::new(),
-            extra: String::new(),
-            salads: String::new(),
-            dessert: String::new(),
-            today: false,
-        }
+        Self { main_course: String::new(), veggie: String::new(), extra: String::new() }
     }
 
-    pub const fn create_today() -> Self {
-        Self {
-            main_course: String::new(),
-            veggie: String::new(),
-            extra: String::new(),
-            salads: String::new(),
-            dessert: String::new(),
-            today: true,
-        }
+    pub fn from_values(main_course: String, veggie: String, extra: String) -> Self {
+        Self { main_course, veggie, extra }
     }
 }
 
@@ -63,9 +57,10 @@ pub async fn get_table() -> Result<String, Box<dyn std::error::Error + Send + Sy
     let html = Document::from(doc.as_str());
     let card_semanal = html.find(Class("cardapio-semanal")).nth(0).unwrap();
     let html_table = card_semanal.find(Name("table")).nth(0).unwrap();
-    // dbg!(&html_table);
+    dbg!(&html_table);
 
-    let mut table: HashMap<Days, HashMap<&str, Food>> = HashMap::new();
+    let mut table: HashMap<Days, HashSet<Category>> = HashMap::new();
+
     for tr in html_table.find(Name("tr")) {
         match tr.attr("class") {
             Some("cardapio-hoje") => {
@@ -79,16 +74,28 @@ pub async fn get_table() -> Result<String, Box<dyn std::error::Error + Send + Sy
                     _s if day_str.contains("Sab") => Sab,
                     _ => Dom,
                 };
+                // dbg!(&day);
 
-                let mut food = Food::create_today();
+                for cat in tr.find(Name("td")) {
+                    match cat.text().as_str() {
+                        "Almoço" => {
+                            let main_course = cat.find(Name("li")).nth(0).unwrap().text();
+                            let veggie = cat.find(Name("li")).nth(1).unwrap().text();
+                            let extra = cat.find(Name("li")).nth(1).unwrap().text();
 
-                let almoco_node = tr.find(Element).nth(2).unwrap();
-                dbg!(almoco_node);
+                            dbg!(main_course, veggie, extra);
+                        },
+                        "Janta" => {},
+                        "Saladas" => {},
+                        "Sobremesas" => {},
+                        _ => {}
+                    }
+                }
 
                 // table.insert(day, v: V);
             },
             Some(_) => {},
-            None => {}
+            None => {},
         }
     }
 
